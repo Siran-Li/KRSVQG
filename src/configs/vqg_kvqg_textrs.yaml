@@ -1,0 +1,22 @@
+ann_root: '../data/TextRS-300'
+dataset: 'textrs'
+
+# set pretrained as a file path or an url
+pretrained: 'output/kvqg/checkpoint_best.pth'
+pre_cgmodel: 'output/caption_nwpu/checkpoint_best.pth'
+
+# size of vit model; base or large
+vit: 'base'
+batch_size_train: 1
+batch_size_test: 2
+vit_grad_ckpt: False
+vit_ckpt_layer: 0
+init_lr: 2e-5
+
+image_size: 384   
+prompt: 'a picture of '
+
+# optimizer
+weight_decay: 0.05
+min_lr: 0
+max_epoch: 10
