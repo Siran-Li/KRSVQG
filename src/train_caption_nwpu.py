@@ -75,7 +75,6 @@ def evaluate(model, data_loader, device, config):
         
         for caption, img_id in zip(captions, image_id):
             result.append({"image_id": img_id.item(), "caption": caption})
-        break
   
     return result
 
@@ -110,9 +109,15 @@ def main(args, config):
 
     #### Model #### 
     print("Creating model")
-    model = blip_decoder(pretrained=config['pretrained'], image_size=config['image_size'], vit=config['vit'], 
-                           vit_grad_ckpt=config['vit_grad_ckpt'], vit_ckpt_layer=config['vit_ckpt_layer'], 
-                           prompt=config['prompt'])
+    
+    if args.evaluate:
+        model = blip_decoder(pretrained=os.path.join(args.output_dir, 'checkpoint_best.pth'), 
+                             image_size=config['image_size'], vit=config['vit'], vit_grad_ckpt=config['vit_grad_ckpt'], 
+                             vit_ckpt_layer=config['vit_ckpt_layer'], prompt=config['prompt'])
+    else:
+        model = blip_decoder(pretrained=config['pretrained'], image_size=config['image_size'], vit=config['vit'], 
+                            vit_grad_ckpt=config['vit_grad_ckpt'], vit_ckpt_layer=config['vit_ckpt_layer'], 
+                            prompt=config['prompt'])
 
     model = model.to(device)   
     
@@ -138,9 +143,11 @@ def main(args, config):
                 
             train_stats = train(model, train_loader, optimizer, epoch, device) 
         
-        val_result = evaluate(model_without_ddp, val_loader, device, config)  
-        val_result_file = save_result(val_result, args.result_dir, 'val_epoch%d'%epoch, remove_duplicate='image_id')        
-  
+            val_result = evaluate(model_without_ddp, val_loader, device, config)  
+            val_result_file = save_result(val_result, args.result_dir, 'val_epoch%d'%epoch, remove_duplicate='image_id')        
+        else:
+            val_result = evaluate(model_without_ddp, val_loader, device, config)  
+            val_result_file = save_result(val_result, args.result_dir, 'val_results', remove_duplicate='image_id')        
 
         if utils.is_main_process():   
             coco_val = rs_caption_eval(config['ann_root'],val_result_file,'val')

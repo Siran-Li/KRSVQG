@@ -12,10 +12,7 @@ from data.nlvr_dataset import nlvr_dataset
 from data.pretrain_dataset import pretrain_dataset
 from transform.randaugment import RandomAugment
 from data.nwpu_caption_dataset import nwpu_caption, nwpu_caption_eval
-from data.nwpu_captrip_dataset import nwpu_captrip, nwpu_captrip_eval
-from data.nwpu_capque_dataset import nwpu_capque, nwpu_capque_eval
-from data.nwpu_ctq_dataset import nwpu_ctq, nwpu_ctq_eval
-from data.textrs_caption_dataset import textrs_caption, textrs_caption_eval
+
 
 def create_dataset(dataset, config, min_scale=0.5):
     
@@ -43,7 +40,7 @@ def create_dataset(dataset, config, min_scale=0.5):
         train_dataset = nwpu_caption(transform_train, config['image_root'], config['ann_root'], 'train', prompt=config['prompt'])
         val_dataset = nwpu_caption_eval(transform_test, config['image_root'], config['ann_root'], 'val')
         test_dataset = nwpu_caption_eval(transform_test, config['image_root'], config['ann_root'], 'test')   
-        return train_dataset, val_dataset, test_dataset
+        return train_dataset, val_dataset
     
     elif dataset=='caption_coco':   
         train_dataset = coco_karpathy_train(transform_train, config['image_root'], config['ann_root'], prompt=config['prompt'])
@@ -75,22 +72,18 @@ def create_dataset(dataset, config, min_scale=0.5):
         return train_dataset, test_dataset
     
     elif dataset=='vqa_nwpu': 
-        train_dataset = vqa_tr_dataset(transform_train, config['ann_root'], split='nwpu_train') 
-        val_dataset = vqa_tr_dataset(transform_test, config['ann_root'], split='nwpu_val')
+        train_dataset = vqa_tr_dataset(transform_train, config['image_root'], config['ann_root'], split='nwpu_train') 
+        val_dataset = vqa_tr_dataset(transform_test, config['image_root'], config['ann_root'], split='nwpu_val')
         return train_dataset, val_dataset
     
-    elif dataset=='vqa_tr_val': 
-        val_dataset = vqa_tr_dataset(transform_test, config['ann_root'], split='val')
-        return val_dataset
-    
     elif dataset=='vqa_textrs': 
-        train_dataset = vqa_tr_dataset(transform_train, config['ann_root'], split='textrs_train') 
-        val_dataset = vqa_tr_dataset(transform_test, config['ann_root'], split='textrs_val')
+        train_dataset = vqa_tr_dataset(transform_train, config['image_root'], config['ann_root'], split='textrs_train') 
+        val_dataset = vqa_tr_dataset(transform_test, config['image_root'], config['ann_root'], split='textrs_val')
         return train_dataset, val_dataset
     
     elif dataset=='kvqg': 
-        train_dataset = vqa_tr_dataset(transform_train, config['ann_root'], split='kvqg_train') 
-        val_dataset = vqa_tr_dataset(transform_test, config['ann_root'], split='kvqg_val')
+        train_dataset = vqa_tr_dataset(transform_train, config['image_root'], config['ann_root'], split='kvqg_train') 
+        val_dataset = vqa_tr_dataset(transform_test, config['image_root'], config['ann_root'], split='kvqg_val')
         return train_dataset, val_dataset
     
     elif dataset=='nlvr': 

@@ -2,6 +2,7 @@ import os
 import json
 import random
 from PIL import Image
+import srsly
 
 import torch
 from torch.utils.data import Dataset
@@ -10,15 +11,22 @@ from data.utils_nwpu import pre_question
 from torchvision.datasets.utils import download_url
 
 class vqa_tr_dataset(Dataset):
-    def __init__(self, transform, ann_root, split="train", max_words=30, prompt=''):
+    def __init__(self, transform, image_root, ann_root, split="nwpu_train", max_words=30, prompt=''):
         self.split = split        
 
         self.transform = transform
+        self.image_root = image_root
 
         filenames = {'nwpu_train':'nwpu_train_ctq.json','nwpu_val':'nwpu_val_ctq.json', 
                      'kvqg_train':'kvqg_train_ctq.json','kvqg_val':'kvqg_val_ctq.json',
                      'textrs_train':'textrs_train_ctq.json','textrs_val':'textrs_val_ctq.json'}  # nwpu_val_gt_1k  nwpu_val.json
-        self.annotation = json.load(open(os.path.join(ann_root,filenames[split]),'r'))
+        file_name = os.path.join(ann_root,filenames[split])
+        if not os.path.isfile(file_name):
+            print('Unzipping dataset')
+            file_data = srsly.read_gzip_json(file_name+'.gz')
+            with open(file_name, "w") as outfile:
+                json.dump(file_data, outfile)
+        self.annotation = json.load(open(file_name,'r'))
 
         self.max_words = max_words      
         self.prompt = prompt
@@ -38,7 +46,10 @@ class vqa_tr_dataset(Dataset):
         
         ann = self.annotation[index]
         
-        image_path = ann['image']
+        if 'nwpu' in self.split:
+            image_path = os.path.join(os.path.join(self.image_root,ann['category']),ann['image'])   
+        else:
+            image_path = os.path.join(self.image_root,ann['image'])   
             
         image = Image.open(image_path).convert('RGB')   
         image = self.transform(image)          

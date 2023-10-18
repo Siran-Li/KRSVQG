@@ -1,5 +1,6 @@
 import os
 import json
+import srsly
 
 from torch.utils.data import Dataset
 from torchvision.datasets.utils import download_url
@@ -14,9 +15,9 @@ class nwpu_caption(Dataset):
         image_root (string): Root directory of images (e.g. nwpu/images/)
         ann_root (string): directory to store the annotation file
         '''        
-        filenames = {'train':'nwpu_train.json','val':'nwpu_val.json', 'test': 'nwpu_test.json'}  # nwpu_val_gt_1k  nwpu_val.json
-        
-        self.annotation = json.load(open(os.path.join(ann_root,filenames[split]),'r'))
+        filenames = {'train':'nwpu_train.json.gz','val':'nwpu_val.json.gz', 'test': 'nwpu_test.json.gz'}  
+
+        self.annotation = srsly.read_gzip_json(os.path.join(ann_root,filenames[split]))
         self.transform = transform
         self.image_root = image_root
         self.max_words = max_words      
@@ -37,7 +38,7 @@ class nwpu_caption(Dataset):
         
         ann = self.annotation[index]
         
-        image_path = os.path.join(self.image_root,ann['image'])        
+        image_path = os.path.join(os.path.join(self.image_root,ann['category']),ann['image'])        
         image = Image.open(image_path).convert('RGB')   
         image = self.transform(image)
         
@@ -52,9 +53,9 @@ class nwpu_caption_eval(Dataset):
         ann_root (string): directory to store the annotation file
         split (string): val or test
         '''
-        filenames = {'train':'nwpu_train.json','val':'nwpu_val.json', 'test': 'nwpu_test.json'}  #nwpu_val_gt_1k  nwpu_val.json
-        
-        self.annotation = json.load(open(os.path.join(ann_root,filenames[split]),'r'))
+        filenames = {'train':'nwpu_train.json.gz','val':'nwpu_val.json.gz', 'test': 'nwpu_test.json.gz'}  
+
+        self.annotation = srsly.read_gzip_json(os.path.join(ann_root,filenames[split]))
         self.transform = transform
         self.image_root = image_root
          
@@ -65,7 +66,7 @@ class nwpu_caption_eval(Dataset):
         
         ann = self.annotation[index]
         
-        image_path = os.path.join(self.image_root,ann['image'])        
+        image_path = os.path.join(os.path.join(self.image_root,ann['category']),ann['image'])        
         image = Image.open(image_path).convert('RGB')   
         image = self.transform(image)          
         

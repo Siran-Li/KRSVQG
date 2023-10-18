@@ -1,10 +1,9 @@
 __author__ = 'tylin'
-from pycocoevalcap.tokenizer.ptbtokenizer import PTBTokenizer
+from evaluate.ptbtokenizer import PTBTokenizer
 from pycocoevalcap.bleu.bleu import Bleu
 from pycocoevalcap.meteor.meteor import Meteor
 from pycocoevalcap.rouge.rouge import Rouge
 from pycocoevalcap.cider.cider import Cider
-from pycocoevalcap.spice.spice import Spice
 
 
 class COCOEvalCap:
@@ -44,7 +43,6 @@ class COCOEvalCap:
             (Meteor(),"METEOR"),
             (Rouge(), "ROUGE_L"),
             (Cider(), "CIDEr"),
-            # (Spice(), "SPICE")
         ]
 
         # =================================================

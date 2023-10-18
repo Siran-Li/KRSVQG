@@ -27,7 +27,7 @@ import utils
 from utils import cosine_lr_schedule
 from data import create_dataset, create_sampler, create_loader
 from data.vqa_tr_dataset import vqa_tr_collate_fn
-from data.utils_nwpu import save_result, nwpu_caption_eval, nwpu_question_eval
+from data.utils_nwpu import save_result, rs_caption_eval, rs_question_eval
 
 
 def train(model, data_loader, optimizer, epoch, device):
@@ -120,7 +120,13 @@ def main(args, config):
                                               collate_fns=[vqa_tr_collate_fn,None]) 
     #### Model #### 
     print("Creating model")
-    model = blip_vqg_c2q(pretrained=config['pretrained'], pre_cgmodel=config['pre_cgmodel'], freeze_img=args.freeze_img,
+    if args.evaluate:
+        model = blip_vqg_c2q(pretrained=os.path.join(args.output_dir, 'checkpoint_best.pth'), 
+                            pre_cgmodel=config['pre_cgmodel'], freeze_img=args.freeze_img,
+                            image_size=config['image_size'],  vit=config['vit'], vit_grad_ckpt=config['vit_grad_ckpt'], 
+                            vit_ckpt_layer=config['vit_ckpt_layer'], prompt=config['prompt'], qg_weight=config['qg_weight'])
+    else:
+        model = blip_vqg_c2q(pretrained=config['pretrained'], pre_cgmodel=config['pre_cgmodel'], freeze_img=args.freeze_img,
                           image_size=config['image_size'],  vit=config['vit'], vit_grad_ckpt=config['vit_grad_ckpt'], 
                           vit_ckpt_layer=config['vit_ckpt_layer'], prompt=config['prompt'], qg_weight=config['qg_weight'])
 
@@ -155,38 +161,56 @@ def main(args, config):
         val_result_file = save_result(vqa_result, args.result_dir, 'val_epoch%d'%epoch, remove_duplicate='image_id')  
 
         if utils.is_main_process():   
-            coco_val = nwpu_caption_eval(config['ann_root'],val_result_file,'val_ctq')
-            coco_val_qg = nwpu_question_eval(config['ann_root'],val_result_file,'val_ctq')
-            
-            if args.evaluate:            
-                log_stats = {**{f'val_cg_{k}': v for k, v in coco_val.eval.items()},
+            if config['dataset'] == 'nwpu':
+                coco_val = rs_caption_eval(config['ann_root'],val_result_file,'nwpu_val')
+                coco_val_qg = rs_question_eval(config['ann_root'],val_result_file,'nwpu_val')
+            elif config['dataset'] == 'textrs':
+                coco_val = rs_caption_eval(config['ann_root'],val_result_file,'textrs_val')
+                coco_val_qg = rs_question_eval(config['ann_root'],val_result_file,'textrs_val')
+            else:
+                raise Exception('Missing dataset name')   
+      
+            save_obj = {
+                'model': model_without_ddp.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'config': config,
+                'epoch': epoch,
+            }
+
+            if coco_val.eval['CIDEr'] + coco_val.eval['Bleu_4'] + coco_val_qg.eval['CIDEr'] + coco_val_qg.eval['Bleu_4'] > best:
+                best = coco_val_qg.eval['CIDEr'] + coco_val_qg.eval['Bleu_4'] + coco_val.eval['CIDEr'] + coco_val.eval['Bleu_4']
+                best_epoch = epoch  
+    
+                torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_best.pth')) 
+                
+            log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+                        **{f'val_cg_{k}': v for k, v in coco_val.eval.items()},
+                        **{f'val_qg_{k}': v for k, v in coco_val_qg.eval.items()},                           
+                        'epoch': epoch,
+                        'best_epoch': best_epoch,
+                        }
+            with open(os.path.join(args.output_dir, "log.txt"),"a") as f:
+                f.write(json.dumps(log_stats) + "\n")      
+
+    if args.evaluate:
+        vqa_result = evaluation(model_without_ddp, test_loader, device, config)        
+        val_result_file = save_result(vqa_result, args.result_dir, 'val_results', remove_duplicate='image_id')  
+        
+        if config['dataset'] == 'nwpu':
+                coco_val = rs_caption_eval(config['ann_root'],val_result_file,'nwpu_val')
+                coco_val_qg = rs_question_eval(config['ann_root'],val_result_file,'nwpu_val')
+        elif config['dataset'] == 'textrs':
+            coco_val = rs_caption_eval(config['ann_root'],val_result_file,'textrs_val')
+            coco_val_qg = rs_question_eval(config['ann_root'],val_result_file,'textrs_val')
+        else:
+            raise Exception('Missing dataset name')   
+        
+        log_stats = {**{f'val_cg_{k}': v for k, v in coco_val.eval.items()},
                             **{f'val_qg_{k}': v for k, v in coco_val_qg.eval.items()},                       
                             }
-                with open(os.path.join(args.output_dir, "evaluate.txt"),"a") as f:
-                    f.write(json.dumps(log_stats) + "\n")                   
-            else:             
-                save_obj = {
-                    'model': model_without_ddp.state_dict(),
-                    'optimizer': optimizer.state_dict(),
-                    'config': config,
-                    'epoch': epoch,
-                }
-
-                if coco_val.eval['CIDEr'] + coco_val.eval['Bleu_4'] + coco_val_qg.eval['CIDEr'] + coco_val_qg.eval['Bleu_4'] > best:
-                    best = coco_val_qg.eval['CIDEr'] + coco_val_qg.eval['Bleu_4'] + coco_val.eval['CIDEr'] + coco_val.eval['Bleu_4']
-                    best_epoch = epoch  
-       
-                    torch.save(save_obj, os.path.join(args.output_dir, 'checkpoint_best.pth')) 
-                    
-                log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                            **{f'val_cg_{k}': v for k, v in coco_val.eval.items()},
-                            **{f'val_qg_{k}': v for k, v in coco_val_qg.eval.items()},                           
-                            'epoch': epoch,
-                            'best_epoch': best_epoch,
-                            }
-                with open(os.path.join(args.output_dir, "log.txt"),"a") as f:
-                    f.write(json.dumps(log_stats) + "\n")          
-
+        with open(os.path.join(args.output_dir, "evaluate.txt"),"a") as f:
+            f.write(json.dumps(log_stats) + "\n")   
+        
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str)) 

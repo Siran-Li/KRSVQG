@@ -1,5 +1,5 @@
-# ann_root: '../data/KVQG/CTQ'
-ann_root: '/data/siran/RSVQG/KVQG/CTQ'
+ann_root: '../data/kvqg'
+image_root: '/data/siran/RSVQG/KVQG/kvqg_images/'
 
 # set pretrained as a file path or an url
 pretrained: 'https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_base_vqa_capfilt_large.pth'
@@ -20,3 +20,5 @@ prompt: 'a picture of '
 weight_decay: 0.05
 min_lr: 0
 max_epoch: 10
+
+qg_weight: 1

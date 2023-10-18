@@ -1,7 +1,6 @@
 import re
 import json
 import os
-import srsly
 
 import torch
 import torch.distributed as dist
@@ -51,7 +50,7 @@ def save_result(result, result_dir, filename, remove_duplicate=''):
     
     json.dump(result,open(result_file,'w'))
 
-    # dist.barrier()
+    dist.barrier()
 
     if utils.is_main_process():   
         # combine results from all processes
@@ -79,27 +78,28 @@ def save_result(result, result_dir, filename, remove_duplicate=''):
 
 
 from pycocotools.coco import COCO
-from evaluate.eval import COCOEvalCap
+from pycocoevalcap.eval import COCOEvalCap
+from torchvision.datasets.utils import download_url
 
-def rs_caption_eval(coco_gt_root, results_file, split):
+def coco_caption_eval(coco_gt_root, results_file, split):
+    urls = {'val':'https://storage.googleapis.com/sfr-vision-language-research/datasets/coco_karpathy_val_gt.json',
+            'test':'https://storage.googleapis.com/sfr-vision-language-research/datasets/coco_karpathy_test_gt.json'}
+    filenames = {'val':'coco_karpathy_val_gt.json','test':'coco_karpathy_test_gt.json'}    
     
-    filenames = {'val':'nwpu_val_gt.json', 'nwpu_val': 'nwpu_val_ctq_gt.json',
-                 'kvqg_val':'kvqg_val_ctq_gt.json', 'textrs_val': 'textrs_val_ctq_gt.json'}    
-    
+    download_url(urls[split],coco_gt_root)
     annotation_file = os.path.join(coco_gt_root,filenames[split])
-    if not os.path.isfile(annotation_file):
-        print('Unzipping dataset')
-        file_data = srsly.read_gzip_json(annotation_file+'.gz')
-        with open(annotation_file, "w") as outfile:
-            json.dump(file_data, outfile)
-    
     
     # create coco object and coco_result object
     coco = COCO(annotation_file)
     coco_result = coco.loadRes(results_file)
 
     # create coco_eval object by taking coco and coco_result
-    coco_eval = COCOEvalCap(coco=coco, cocoRes=coco_result, content='caption')
+    coco_eval = COCOEvalCap(coco, coco_result)
+
+    # evaluate on a subset of images by setting
+    # coco_eval.params['image_id'] = coco_result.getImgIds()
+    # please remove this line when evaluating the full validation set
+    # coco_eval.params['image_id'] = coco_result.getImgIds()
 
     # evaluate results
     # SPICE will take a few minutes the first time, but speeds up due to caching
@@ -107,35 +107,6 @@ def rs_caption_eval(coco_gt_root, results_file, split):
 
     # print output evaluation scores
     for metric, score in coco_eval.eval.items():
-        print(f'{metric}: {score:.4f}')
-
-    return coco_eval
-
-def rs_question_eval(coco_gt_root, results_file, split):
-    
-    filenames = {'nwpu_val': 'nwpu_val_ctq_gt.json', 'kvqg_val':'kvqg_val_ctq_gt.json', 'textrs_val': 'textrs_val_ctq_gt.json'}    
-    
-    annotation_file = os.path.join(coco_gt_root,filenames[split])
-    if not os.path.isfile(annotation_file):
-        print('Unzipping dataset')
-        file_data = srsly.read_gzip_json(annotation_file+'.gz')
-        with open(annotation_file, "w") as outfile:
-            json.dump(file_data, outfile)
-
-    # create coco object and coco_result object
-    coco = COCO(annotation_file)
-    coco_result = coco.loadRes(results_file)
-
-    # create coco_eval object by taking coco and coco_result
-    coco_eval = COCOEvalCap(coco=coco, cocoRes=coco_result, content='question')
-
-    # evaluate results
-    # SPICE will take a few minutes the first time, but speeds up due to caching
-    coco_eval.evaluate()
-
-    print('Question Eval: ')
-    # print output evaluation scores
-    for metric, score in coco_eval.eval.items():
-        print(f'{metric}: {score:.4f}')
+        print(f'{metric}: {score:.3f}')
     
     return coco_eval
