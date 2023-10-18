@@ -1,0 +1,4 @@
+nwpu_root: '../data/nwpu-300'
+nwpu_img: '/data/siran/RSVQG/NWPU-Captions/NWPU-RESISC45'
+nwpu_triplets: 'save_data/generated_triplets'
+save_recording: 'save_data/recording'
