@@ -22,23 +22,29 @@ from transformers import pipeline
 conceptnet_lite.connect("ConceptNet/conceptnet.db")
 
 def sort_dict_by_value(d, reverse = False, k=10):
+  """Sort the dictionary by the values"""
+  
   sorted_pairs = dict(sorted(d.items(), key = lambda x: x[1], reverse = reverse))
 
   return dict(itertools.islice(sorted_pairs.items(), k))
 
 def suggest_obj(sug_word):
+    """"Select the noun word"""
+    
     sug_tokens = nlp(sug_word)
     for tok in sug_tokens:
         if tok.pos_ == "NOUN":            
             return tok.lemma_
         
 def jsonline_reader(filename: str):
+    """Load the dataset"""
     with open(filename, 'r') as f_reader:
         examples = [json.loads(i) for i in f_reader.read().split('\n') if len(i) > 0]
     return examples
 
 def extract_core(doc):
-
+    """Extract core words and the connected description"""
+    
     noun_adj_pairs = []
     num_noun = 0
     regex = re.compile(r"'\s+(.*?)\s+'")
@@ -79,57 +85,12 @@ def extract_core(doc):
             if continue_noun>1:
                 noun_adj_pairs.append({'id': num_noun, 'obj': noun_words, 'des': des})
                 num_noun += 1
-
-    # print(noun_adj_pairs)
-
+                
     return noun_adj_pairs
 
-
-def search_replace(paragraph, answer, sent, senmodel, txt):
-    search = nlp(answer)
-    text_to_be_searched = nlp(paragraph)
-    threshold = 0.6
-
-    matched_words = []
-    replaced_words = []
-    replaced = ''
-    next_one = False
-    embeddings1 = senmodel.encode(answer, convert_to_tensor=True)
-    for token in text_to_be_searched:
-        
-        if token.similarity(search) > threshold or answer.split()[0]==token.text:
-            next_one = True
-            matched_words.append(token.text)
-        elif (next_one and answer.find(token.text)!=-1):
-            next_one = True
-            matched_words.append(token.text)
-        elif next_one:
-            replaced = ' '.join(matched_words)
-            replaced_words.append(replaced)
-            matched_words = []
-            next_one = False
-
-    if len(replaced_words) > 1:
-      embeddings2 = senmodel.encode(replaced_words, convert_to_tensor=True)
-      cosine_scores = util.pytorch_cos_sim(embeddings1, embeddings2)[0].cpu().detach().numpy()
-      replaced = replaced_words[np.argmax(cosine_scores)]
-
-    if len(replaced_words) == 0:
-        p_split = paragraph.split('.')
-        if '' in p_split:
-            p_split.remove('')
-        p_split.insert(randint(0,len(p_split)), sent)    
-        new_paragraph = ". ".join(p_split).strip()
-        if new_paragraph[-1] != '.':
-            new_paragraph += '.'
-
-        return new_paragraph
-    else:
-        new_paragraph = paragraph.replace(replaced, answer)
-        txt.writelines('Replace word: '+ replaced + ' -> ' + answer + ' :: ' + new_paragraph + '\r\n')
-    return new_paragraph
-
 def replace_relation(knowledge):
+    """Connect the knowledge triplet to a simple sentence"""
+    
     if knowledge[1] == 'used for':
         tmp = 'is used for'
     elif knowledge[1] == 'receives action':
@@ -166,12 +127,15 @@ def replace_relation(knowledge):
     return knowledge[0] + ' ' + tmp + ' ' + knowledge[2]
 
 def save_triplets(data, triplet_path):
+    """Generate triplets and save to the csv file"""
 
     last_img = ''
     init_cap = 0
     num_raw = 0
     for item_i in tqdm(range(len(data))):
         image = data[item_i]['img_fname']
+        
+        # each image corresponds to 5 captions
         if last_img != image:
             if num_raw != 4 and num_raw != 0:
                 raise Exception('Wrong image-caption matching')
@@ -203,8 +167,8 @@ def save_triplets(data, triplet_path):
         df_des = df_des.drop_duplicates(keep='first').reset_index(drop=True)  
         
         embedding_1= senmodel.encode(sentence, convert_to_tensor=True)
-        objects = list(df_des['obj'])
-        des_list = list(df_des['des'])
+        objects = list(df_des['obj'])  # the object word
+        des_list = list(df_des['des']) # the object word with its description
 
         # get the relevant knowledge triplets from ConceptNet
         for obj_idx in range(len(objects)):
@@ -243,12 +207,11 @@ def save_triplets(data, triplet_path):
                         tr_list.append([e.start.text.replace('_', ' '), e.relation.name.replace('_', ' '), des_i])
 
             df_obj_triplet = pd.DataFrame(triplet_list, columns=['triplet'])
-            df_obj_triplet['split'] = tr_list
-            df_obj_triplet['pred'] = pred_list
+            df_obj_triplet['split'] = tr_list    # knowledge triplet
+            df_obj_triplet['pred'] = pred_list   # the external entity
             df_obj_triplet = df_obj_triplet.drop_duplicates(subset=['triplet'], keep='first').reset_index(drop=True)
             df_obj_triplet['triplet'] = [l.replace('_', ' ') for l in list(df_obj_triplet['triplet'])]  
 
-            # calculate the similarity between subject and object in each triplet
             triplet_list = list(df_obj_triplet['triplet'])
 
             # select triplets according to similarity with caption counted by SentenceTransformer
@@ -279,7 +242,7 @@ def save_triplets(data, triplet_path):
                 top_des += [df_des[df_des['obj']==obj]['des'].values[0] for oi in range(num_obj)]
                 
         if num_raw == 4:
-            # select the top triplets based on different objects from one caption
+            # select the top triplets by the topic similarity between the caption and the external entities
             df_triplets = pd.DataFrame(top_triplets, columns=['triplet'])
             df_triplets.insert(loc=0, column='caption', value=top_caps)
             df_triplets['obj'] = top_objects
@@ -294,7 +257,7 @@ def save_triplets(data, triplet_path):
                     df_triplets.at[t_idx,'pred_score'] = classifier(top_caps[t_idx], candidate_labels=[top_predicts[t_idx]],)['scores'][0]
 
                 df_triplets= df_triplets.drop_duplicates(subset=['triplet'], keep='first') 
-                df_triplets = df_triplets[df_triplets['pred_score'] >= 0.2]  # > 0.2
+                df_triplets = df_triplets[df_triplets['pred_score'] >= 0.2]  
                 df_triplets = df_triplets[df_triplets['pred_score'] < 0.8]
                 df_triplets = df_triplets.sort_values('obj_sim', ascending=False).reset_index(drop=True)
 
@@ -311,7 +274,7 @@ def save_triplets(data, triplet_path):
                     txt.writelines(image, ' Non-question: '+ obj + ' -> ' + sentence + '\n')
 
                 if num_q > 0:
-                    # Generate questions based on the triplets and caption
+                    # keep the top 10 triplets and make a simple knowledge sentence for each triplet
                     df_questions = df_questions.iloc[:num_q, :]
                     k2t_list = []
                     for num_t in range(num_q):
@@ -342,7 +305,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='config.yaml')
-    parser.add_argument('--device', default='cuda')  # cuda
+    parser.add_argument('--device', default='cuda')  
    
     args = parser.parse_args()
 
@@ -353,9 +316,9 @@ if __name__ == '__main__':
     dict = enchant.Dict('en_US')
     relation_list = ['has_a', 'used_for', 'capable_of', 'at_location', 'has_subevent', 
                      'has_prerequisite', 'has_property', 'causes', 'created_by', 'defined_as', 
-                     'desires', 'made_of', 'not_desires', 'receives_action'] #'related_to', 'is_a', 'distince_from', 
+                     'desires', 'made_of', 'not_desires', 'receives_action'] 
     
-    senmodel = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')   #sentence-transformers/all-MiniLM-L6-v2   sentence-transformers/sentence-t5-xl
+    senmodel = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')   
     classifier = pipeline(model="facebook/bart-large-mnli")
 
     file_path = config['nwpu_root']
