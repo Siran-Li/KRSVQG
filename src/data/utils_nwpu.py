@@ -86,6 +86,7 @@ def rs_caption_eval(coco_gt_root, results_file, split):
     filenames = {'val':'nwpu_val_gt.json', 'nwpu_val': 'nwpu_val_ctq_gt.json',
                  'kvqg_val':'kvqg_val_ctq_gt.json', 'textrs_val': 'textrs_val_ctq_gt.json'}    
     
+    # unzip datasets
     annotation_file = os.path.join(coco_gt_root,filenames[split])
     if not os.path.isfile(annotation_file):
         print('Unzipping dataset')
@@ -115,6 +116,7 @@ def rs_question_eval(coco_gt_root, results_file, split):
     
     filenames = {'nwpu_val': 'nwpu_val_ctq_gt.json', 'kvqg_val':'kvqg_val_ctq_gt.json', 'textrs_val': 'textrs_val_ctq_gt.json'}    
     
+    # unzip datasets
     annotation_file = os.path.join(coco_gt_root,filenames[split])
     if not os.path.isfile(annotation_file):
         print('Unzipping dataset')

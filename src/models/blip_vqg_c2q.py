@@ -22,6 +22,7 @@ class BLIP_VQG_C2Q(nn.Module):
             med_config (str): path for the mixture of encoder-decoder model's configuration file
             image_size (int): input image size
             vit (str): model size of vision transformer
+            qg_weight (float): coefficient to be added in front of the qg loss
         """               
         super().__init__()
         
@@ -52,8 +53,7 @@ class BLIP_VQG_C2Q(nn.Module):
 
         if train:               
             '''
-            n: number of answers for each question
-            weights: weight for each answer
+            n: number of questions for each answer
             ''' 
 
             text = self.tokenizer(caption, padding='longest', truncation=True, max_length=40, return_tensors="pt").to(image.device)     
@@ -62,6 +62,7 @@ class BLIP_VQG_C2Q(nn.Module):
             decoder_targets_cg = text.input_ids.masked_fill(text.input_ids == self.tokenizer.pad_token_id, -100)         
             decoder_targets_cg[:,:self.prompt_length] = -100
         
+            # generated caption features
             decoder_output_cg = self.text_decoder_cg(text.input_ids, 
                                             attention_mask = text.attention_mask, 
                                             encoder_hidden_states = image_embeds,
@@ -78,6 +79,7 @@ class BLIP_VQG_C2Q(nn.Module):
             question.input_ids[:,0] = self.tokenizer.bos_token_id
             question_targets = question.input_ids.masked_fill(question.input_ids == self.tokenizer.pad_token_id, -100)      
 
+            # knowledge sentence features
             triplet_output = self.text_encoder(triplet.input_ids, 
                                                 attention_mask = triplet.attention_mask, 
                                                 encoder_hidden_states = image_embeds,
@@ -92,6 +94,7 @@ class BLIP_VQG_C2Q(nn.Module):
             triplet_states = torch.stack(triplet_states,0)    
             triplet_atts = torch.stack(triplet_atts,0)    
 
+            # concatenate the generated caption features and knowledge sentence features
             captr_embeds = torch.cat((cap_embeds, triplet_states), dim=1)
             captr_atts = torch.cat((cap_atts, triplet_atts), dim=1)
 
@@ -111,6 +114,7 @@ class BLIP_VQG_C2Q(nn.Module):
             
 
         else: 
+            # beam search
             num_beams=3
 
             triplet_output = self.text_encoder(triplet.input_ids, 
@@ -142,6 +146,7 @@ class BLIP_VQG_C2Q(nn.Module):
 
             image_embeds = image_embeds.repeat_interleave(num_beams,dim=0)
             image_atts = torch.ones(image_embeds.size()[:-1],dtype=torch.long).to(image.device)
+            # generate caption
             outputs_cg = self.text_decoder_cg.generate(input_ids=input_ids_cg,
                                                         max_length=30,
                                                         min_length=10,
@@ -161,7 +166,7 @@ class BLIP_VQG_C2Q(nn.Module):
 
             model_kwargs = {"encoder_hidden_states": captr_embeds, "encoder_attention_mask": captr_atts}
             bos_ids = torch.full((image.size(0),1),fill_value=self.tokenizer.bos_token_id,device=image.device)
-
+            # generate question
             outputs = self.text_decoder.generate(input_ids=bos_ids,
                                                     max_length=30,
                                                     min_length=10,
@@ -185,6 +190,8 @@ def blip_vqg_c2q(pretrained='', pre_cgmodel='', freeze_img=False, **kwargs):
     model = BLIP_VQG_C2Q(**kwargs)
     if pretrained:
         model,msg = load_checkpoint(model,pretrained)
+        
+        # load pre-trained image captioning model
         if pre_cgmodel:
             cgmodel, msg_cg = load_checkpoint(model,pre_cgmodel)
             model.visual_encoder.load_state_dict(cgmodel.visual_encoder.state_dict())

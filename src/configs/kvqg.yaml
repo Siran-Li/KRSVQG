@@ -1,5 +1,5 @@
 ann_root: '../data/kvqg'
-image_root: '/data/siran/RSVQG/KVQG/kvqg_images/'
+image_root: '/data/kvqg/kvqg_images/'
 
 # set pretrained as a file path or an url
 pretrained: 'https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model_base_vqa_capfilt_large.pth'
@@ -21,4 +21,5 @@ weight_decay: 0.05
 min_lr: 0
 max_epoch: 10
 
+# coefficient to be added in front of the qg loss
 qg_weight: 1

@@ -8,7 +8,6 @@ import torch
 from torch.utils.data import Dataset
 from data.utils_nwpu import pre_question
 
-from torchvision.datasets.utils import download_url
 
 class vqa_tr_dataset(Dataset):
     def __init__(self, transform, image_root, ann_root, split="nwpu_train", max_words=30, prompt=''):
@@ -19,7 +18,9 @@ class vqa_tr_dataset(Dataset):
 
         filenames = {'nwpu_train':'nwpu_train_ctq.json','nwpu_val':'nwpu_val_ctq.json', 
                      'kvqg_train':'kvqg_train_ctq.json','kvqg_val':'kvqg_val_ctq.json',
-                     'textrs_train':'textrs_train_ctq.json','textrs_val':'textrs_val_ctq.json'}  # nwpu_val_gt_1k  nwpu_val.json
+                     'textrs_train':'textrs_train_ctq.json','textrs_val':'textrs_val_ctq.json'}  
+        
+        # unzip datasets
         file_name = os.path.join(ann_root,filenames[split])
         if not os.path.isfile(file_name):
             print('Unzipping dataset')
