@@ -19,24 +19,40 @@ To enhance the comprehension of visual content and improve image analysis, we pr
 
 ## Download Datasets
 
-We provide the dataset annotations in `/data'. For the image source, please download the NWPU-Caption images data from the [link](https://figshare.com/articles/dataset/NWPU-RESISC45_Dataset_with_12_classes/16674166) and download the TextRS-Caption image data from the [link](https://github.com/yakoubbazi/TextRS).
+We provide the dataset annotations in `/data'. For the image source, please download the NWPU-Caption images data from the [link](https://figshare.com/articles/dataset/NWPU-RESISC45_Dataset_with_12_classes/16674166), download the KVQG images data from the [link](https://uehara-mech.github.io/kvqg), and download the TextRS images data from the [link](https://github.com/yakoubbazi/TextRS).
+
+
+## Triplet Generation
+
+To evaluate the knowledge triplets on NWPU-300, run:
+```bash
+cd triplets
+python nwpu_triplets.py
+```
 
 ## Model Training
 
 ### Vision Pre-training (VPT):
-
+1. Download NWPU-Caption dataset from the original website, and set 'image_root' in configs/caption_nwpu.yaml.
+2. To train and evaluate the KRSVQG model on NWPU-Caption, run:
 ```bash
 cd src
 python train_caption_nwpu.py
+python train_caption_nwpu.py --evaluate
 ```
 
 ### Language Pre-training (LPT):
-
+1. Download KVQG datasets from the original website, and set 'image_root' in configs/kvqg.yaml.
+2. To train and evaluate the KRSVQG model on KVQG, run:
 ```bash
-python train_vqg_kvqg.py
+python train_vqg_kvqg.py 
+python train_vqg_kvqg.py --evaluate
 ```
 
 ### Fine-tuning on Remote Sensing (FT):
+
+1. For NWPU-300 dataset, set 'image_root' in configs/vqg_kvqg_nwpu.yaml and configs/vqg_kvqg_nwpu_2.yaml as the same as for NWPU-Caption data. For TextRS-300 dataset, download TextRS dataset from the original website, and set 'image_root' in configs/vqg_kvqg_textrs.yaml and configs/vqg_kvqg_textrs_2.yaml.
+2. To train and evaluate the KRSVQG model on our NWPU-300 dataset and TextRS-300 dataset respectively, run:
 
 ```bash
 python train_vqg_RSFT.py
@@ -46,6 +62,11 @@ python train_vqg_RSFT.py
 python train_vqg_RSFT_2.py
     --config ./configs/vqg_kvqg_nwpu_2.yaml \  # ./configs/vqg_kvqg_textrs_2.yaml for textrs-300
     --output_dir output/NWPU-300/Model4 \      # .output/TextRS-300/Model4 for textrs-300
+
+python train_vqg_RSFT_2.py
+    --config ./configs/vqg_kvqg_nwpu_2.yaml \  # ./configs/vqg_kvqg_textrs_2.yaml for textrs-300
+    --output_dir output/NWPU-300/Model4 \      # .output/TextRS-300/Model4 for textrs-300
+    --evaluate
 ```
 
 ## Citation
