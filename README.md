@@ -24,7 +24,7 @@ We provide the dataset annotations in `/data'. For the image source, please down
 
 ## Triplet Generation
 
-To evaluate the knowledge triplets on NWPU-300, run:
+To generate the knowledge triplets on NWPU-300, run:
 ```bash
 cd triplets
 python nwpu_triplets.py
