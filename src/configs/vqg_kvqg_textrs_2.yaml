@@ -1,5 +1,5 @@
 ann_root: '../data/textrs-300'
-image_root: '/data/textrs-300/TextRS/images/'
+image_root: '../data/textrs-300/TextRS/images/'
 dataset: 'textrs'
 
 # set pretrained as a file path or an url

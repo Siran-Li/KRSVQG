@@ -1,5 +1,5 @@
 ann_root: '../data/nwpu-300'
-image_root: '/data/nwpu-caption/NWPU-Captions/NWPU-RESISC45/'
+image_root: '../data/nwpu-caption/NWPU-Captions/NWPU-RESISC45/'
 dataset: 'nwpu'
 
 # set pretrained as a file path or an url
