@@ -224,7 +224,7 @@ def save_triplets(data, triplet_path):
 
                 df_obj_triplet['obj_sim'] = sim_list
                 df_obj_triplet = df_obj_triplet[df_obj_triplet['obj_sim']>=0.2]
-                df_obj_triplet = df_obj_triplet[df_obj_triplet['obj_sim']<0.8] # avoid duplicated info <0.5
+                df_obj_triplet = df_obj_triplet[df_obj_triplet['obj_sim']<0.8]  # avoid duplicated info
                 df_obj_triplet = df_obj_triplet.sort_values('obj_sim', ascending=False).reset_index(drop=True)
 
                         
@@ -254,13 +254,13 @@ def save_triplets(data, triplet_path):
 
             if len(top_triplets) > 0:
                 for t_idx in range(len(top_triplets)):
+                    # the topic similarity score
                     df_triplets.at[t_idx,'pred_score'] = classifier(top_caps[t_idx], candidate_labels=[top_predicts[t_idx]],)['scores'][0]
 
                 df_triplets= df_triplets.drop_duplicates(subset=['triplet'], keep='first') 
                 df_triplets = df_triplets[df_triplets['pred_score'] >= 0.2]  
                 df_triplets = df_triplets[df_triplets['pred_score'] < 0.8]
                 df_triplets = df_triplets.sort_values('obj_sim', ascending=False).reset_index(drop=True)
-
 
                 df_questions = df_triplets.copy()
                 if len(df_questions) > 10:
