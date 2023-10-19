@@ -19,7 +19,7 @@ To enhance the comprehension of visual content and improve image analysis, we pr
 
 ## Download Datasets
 
-We provide the dataset annotations in `/data'. For the image source, please download the NWPU-Caption images data from the [link](https://figshare.com/articles/dataset/NWPU-RESISC45_Dataset_with_12_classes/16674166), download the KVQG images data from the [link](https://uehara-mech.github.io/kvqg), and download the TextRS images data from the [link](https://github.com/yakoubbazi/TextRS).
+We provide the dataset annotations in `data`. For the image source, please download the NWPU-Caption images data from the [link](https://figshare.com/articles/dataset/NWPU-RESISC45_Dataset_with_12_classes/16674166), download the KVQG images data from the [link](https://uehara-mech.github.io/kvqg), and download the TextRS images data from the [link](https://github.com/yakoubbazi/TextRS).
 
 
 ## Triplet Generation
