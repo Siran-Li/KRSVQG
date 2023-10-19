@@ -33,7 +33,7 @@ python nwpu_triplets.py
 ## Model Training
 
 ### Vision Pre-training (VPT):
-1. Download NWPU-Caption dataset from the original website, and set 'image_root' in configs/caption_nwpu.yaml.
+1. Download NWPU-Caption dataset from the original website, and set 'image_root' in `configs/caption_nwpu.yaml`.
 2. To train and evaluate the KRSVQG model on NWPU-Caption, run:
 ```bash
 cd src
@@ -42,7 +42,7 @@ python train_caption_nwpu.py --evaluate
 ```
 
 ### Language Pre-training (LPT):
-1. Download KVQG datasets from the original website, and set 'image_root' in configs/kvqg.yaml.
+1. Download KVQG datasets from the original website, and set 'image_root' in `configs/kvqg.yaml`.
 2. To train and evaluate the KRSVQG model on KVQG, run:
 ```bash
 python train_vqg_kvqg.py 
@@ -51,7 +51,7 @@ python train_vqg_kvqg.py --evaluate
 
 ### Fine-tuning on Remote Sensing (FT):
 
-1. For NWPU-300 dataset, set 'image_root' in configs/vqg_kvqg_nwpu.yaml and configs/vqg_kvqg_nwpu_2.yaml as the same as for NWPU-Caption data. For TextRS-300 dataset, download TextRS dataset from the original website, and set 'image_root' in configs/vqg_kvqg_textrs.yaml and configs/vqg_kvqg_textrs_2.yaml.
+1. For NWPU-300 dataset, set 'image_root' in `configs/vqg_kvqg_nwpu.yaml` and `configs/vqg_kvqg_nwpu_2.yaml` as the same as for NWPU-Caption data. For TextRS-300 dataset, download TextRS dataset from the original website, and set 'image_root' in `configs/vqg_kvqg_textrs.yaml` and `configs/vqg_kvqg_textrs_2.yaml`.
 2. To train and evaluate the KRSVQG model on our NWPU-300 dataset and TextRS-300 dataset respectively, run:
 
 ```bash
